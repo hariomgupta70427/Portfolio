@@ -87,8 +87,8 @@ export function SkillsPhysics() {
   const [hasDropped, setHasDropped] = useState(false)
   const [imagesReady, setImagesReady] = useState(false)
   const [failedIcons, setFailedIcons] = useState<Set<string>>(new Set())
-  // Keep preloaded Image objects alive so the browser doesn't GC them
-  const preloadedImagesRef = useRef<HTMLImageElement[]>([])
+  // Blob URLs keyed by skill name — guaranteed in-memory, no cache eviction
+  const [iconBlobUrls, setIconBlobUrls] = useState<Record<string, string>>({})
 
   // Build deduplicated skill list
   const allSkills = useRef<{ name: string; color: string }[]>([])
@@ -107,32 +107,57 @@ export function SkillsPhysics() {
     })
   }
 
-  // Preload ALL icon images on mount — store refs so browser cache persists
+  // Fetch all SVGs as blobs on mount — blob URLs stay in memory permanently
   useEffect(() => {
-    const urls = Object.values(TECH_ICONS)
-    let loaded = 0
-    const total = urls.length
-    const imgs: HTMLImageElement[] = []
+    let cancelled = false
 
-    urls.forEach((url) => {
-      const img = new window.Image()
-      img.onload = () => {
-        loaded++
-        if (loaded >= total) setImagesReady(true)
-      }
-      img.onerror = () => {
-        loaded++
-        if (loaded >= total) setImagesReady(true)
-      }
-      img.src = url
-      imgs.push(img)
+    // Inject <link rel="preload"> for browser-level early fetch
+    const preloadLinks: HTMLLinkElement[] = []
+    Object.values(TECH_ICONS).forEach((url) => {
+      const link = document.createElement('link')
+      link.rel = 'preload'
+      link.as = 'image'
+      link.href = url
+      link.type = 'image/svg+xml'
+      document.head.appendChild(link)
+      preloadLinks.push(link)
     })
-    // Store refs so they aren't garbage-collected
-    preloadedImagesRef.current = imgs
 
-    // Fallback: if images take too long, start anyway after 1.5s
-    const timeout = setTimeout(() => setImagesReady(true), 1500)
-    return () => clearTimeout(timeout)
+    async function loadAllIcons() {
+      const entries = Object.entries(TECH_ICONS)
+      const blobMap: Record<string, string> = {}
+
+      await Promise.all(
+        entries.map(async ([name, url]) => {
+          try {
+            const res = await fetch(url)
+            if (!res.ok) return
+            const blob = await res.blob()
+            blobMap[name] = URL.createObjectURL(blob)
+          } catch {
+            // Icon will use fallback
+          }
+        })
+      )
+
+      if (!cancelled) {
+        setIconBlobUrls(blobMap)
+        setImagesReady(true)
+      }
+    }
+
+    loadAllIcons()
+
+    // Safety fallback — start physics even if fetch is slow
+    const timeout = setTimeout(() => {
+      if (!cancelled) setImagesReady(true)
+    }, 3000)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timeout)
+      preloadLinks.forEach((link) => link.remove())
+    }
   }, [])
 
   // IntersectionObserver to trigger drop
@@ -302,7 +327,8 @@ export function SkillsPhysics() {
     >
       {/* Rendered skill icons */}
       {positions.map((item) => {
-        const iconUrl = TECH_ICONS[item.name]
+        const blobUrl = iconBlobUrls[item.name]
+        const iconUrl = blobUrl || TECH_ICONS[item.name]
         const isHovered = hoveredSkill === item.name
         const isFailed = failedIcons.has(item.name)
 
