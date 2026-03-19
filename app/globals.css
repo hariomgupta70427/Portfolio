@@ -1,0 +1,418 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Premium Portfolio Color System */
+:root {
+  /* Base colors */
+  --background: oklch(0.98 0.005 270);
+  --foreground: oklch(0.15 0.02 270);
+  
+  /* Card and surfaces */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.02 270);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.02 270);
+  
+  /* Primary - Neon Cyan */
+  --primary: oklch(0.75 0.18 195);
+  --primary-foreground: oklch(0.15 0.02 195);
+  
+  /* Secondary */
+  --secondary: oklch(0.95 0.01 270);
+  --secondary-foreground: oklch(0.20 0.02 270);
+  
+  /* Muted */
+  --muted: oklch(0.96 0.005 270);
+  --muted-foreground: oklch(0.50 0.02 270);
+  
+  /* Accent - Aurora Green */
+  --accent: oklch(0.80 0.20 160);
+  --accent-foreground: oklch(0.15 0.02 160);
+  
+  /* Destructive */
+  --destructive: oklch(0.60 0.24 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  
+  /* Borders and inputs */
+  --border: oklch(0.90 0.01 270);
+  --input: oklch(0.92 0.005 270);
+  --ring: oklch(0.75 0.18 195);
+  
+  /* Premium accent colors */
+  --neon: oklch(0.75 0.25 195);
+  --aurora: oklch(0.80 0.22 160);
+  --purple: oklch(0.65 0.25 300);
+  --pink: oklch(0.70 0.22 350);
+  --orange: oklch(0.75 0.20 45);
+  
+  /* Skill category colors */
+  --skill-mobile: oklch(0.70 0.18 45);
+  --skill-ai: oklch(0.65 0.22 300);
+  --skill-frontend: oklch(0.75 0.25 195);
+  --skill-backend: oklch(0.80 0.22 160);
+  --skill-languages: oklch(0.90 0.02 270);
+  --skill-devops: oklch(0.70 0.22 350);
+  
+  /* Layout */
+  --radius: 0.75rem;
+  
+  /* Sidebar (keeping for compatibility) */
+  --sidebar: oklch(0.98 0.005 270);
+  --sidebar-foreground: oklch(0.15 0.02 270);
+  --sidebar-primary: oklch(0.75 0.18 195);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.95 0.01 270);
+  --sidebar-accent-foreground: oklch(0.20 0.02 270);
+  --sidebar-border: oklch(0.90 0.01 270);
+  --sidebar-ring: oklch(0.75 0.18 195);
+  
+  /* Charts */
+  --chart-1: oklch(0.75 0.25 195);
+  --chart-2: oklch(0.80 0.22 160);
+  --chart-3: oklch(0.65 0.25 300);
+  --chart-4: oklch(0.70 0.22 350);
+  --chart-5: oklch(0.75 0.20 45);
+}
+
+.dark {
+  /* Base colors - Deep space black */
+  --background: oklch(0.08 0.02 270);
+  --foreground: oklch(0.95 0.01 270);
+  
+  /* Card and surfaces */
+  --card: oklch(0.12 0.02 270);
+  --card-foreground: oklch(0.95 0.01 270);
+  --popover: oklch(0.12 0.02 270);
+  --popover-foreground: oklch(0.95 0.01 270);
+  
+  /* Primary - Neon Cyan */
+  --primary: oklch(0.80 0.22 195);
+  --primary-foreground: oklch(0.10 0.02 195);
+  
+  /* Secondary */
+  --secondary: oklch(0.18 0.02 270);
+  --secondary-foreground: oklch(0.95 0.01 270);
+  
+  /* Muted */
+  --muted: oklch(0.20 0.02 270);
+  --muted-foreground: oklch(0.60 0.02 270);
+  
+  /* Accent - Aurora Green */
+  --accent: oklch(0.85 0.22 160);
+  --accent-foreground: oklch(0.10 0.02 160);
+  
+  /* Destructive */
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(0.95 0 0);
+  
+  /* Borders and inputs */
+  --border: oklch(0.22 0.02 270);
+  --input: oklch(0.18 0.02 270);
+  --ring: oklch(0.80 0.22 195);
+  
+  /* Premium accent colors - brighter in dark mode */
+  --neon: oklch(0.80 0.28 195);
+  --aurora: oklch(0.85 0.25 160);
+  --purple: oklch(0.70 0.28 300);
+  --pink: oklch(0.75 0.25 350);
+  --orange: oklch(0.80 0.22 45);
+  
+  /* Skill category colors - brighter */
+  --skill-mobile: oklch(0.75 0.20 45);
+  --skill-ai: oklch(0.70 0.25 300);
+  --skill-frontend: oklch(0.80 0.28 195);
+  --skill-backend: oklch(0.85 0.25 160);
+  --skill-languages: oklch(0.95 0.02 270);
+  --skill-devops: oklch(0.75 0.25 350);
+  
+  /* Sidebar */
+  --sidebar: oklch(0.10 0.02 270);
+  --sidebar-foreground: oklch(0.95 0.01 270);
+  --sidebar-primary: oklch(0.80 0.22 195);
+  --sidebar-primary-foreground: oklch(0.10 0 0);
+  --sidebar-accent: oklch(0.18 0.02 270);
+  --sidebar-accent-foreground: oklch(0.95 0.01 270);
+  --sidebar-border: oklch(0.22 0.02 270);
+  --sidebar-ring: oklch(0.80 0.22 195);
+  
+  /* Charts */
+  --chart-1: oklch(0.80 0.28 195);
+  --chart-2: oklch(0.85 0.25 160);
+  --chart-3: oklch(0.70 0.28 300);
+  --chart-4: oklch(0.75 0.25 350);
+  --chart-5: oklch(0.80 0.22 45);
+}
+
+@theme inline {
+  --font-sans: 'Syne', 'Syne Fallback', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
+  --font-display: 'Outfit', 'Outfit Fallback', system-ui, sans-serif;
+  
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  /* Premium colors */
+  --color-neon: var(--neon);
+  --color-aurora: var(--aurora);
+  --color-purple: var(--purple);
+  --color-pink: var(--pink);
+  --color-orange: var(--orange);
+  
+  /* Skill colors */
+  --color-skill-mobile: var(--skill-mobile);
+  --color-skill-ai: var(--skill-ai);
+  --color-skill-frontend: var(--skill-frontend);
+  --color-skill-backend: var(--skill-backend);
+  --color-skill-languages: var(--skill-languages);
+  --color-skill-devops: var(--skill-devops);
+  
+  /* Charts */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Hide scrollbar for smooth scroll */
+  html.lenis, html.lenis body {
+    height: auto;
+  }
+  
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+  
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+  
+  .lenis.lenis-smooth iframe {
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, var(--neon), var(--aurora));
+  }
+  
+  .text-gradient-reverse {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, var(--aurora), var(--neon));
+  }
+  
+  /* Glass effect */
+  .glass {
+    @apply backdrop-blur-xl bg-card/80 border border-border/50;
+  }
+  
+  .glass-strong {
+    @apply backdrop-blur-2xl bg-card/90 border border-border/60;
+  }
+  
+  /* Glow effects */
+  .glow-neon {
+    box-shadow: 0 0 20px var(--neon), 0 0 40px oklch(from var(--neon) l c h / 0.5);
+  }
+  
+  .glow-aurora {
+    box-shadow: 0 0 20px var(--aurora), 0 0 40px oklch(from var(--aurora) l c h / 0.5);
+  }
+  
+  .text-glow-neon {
+    text-shadow: 0 0 20px var(--neon), 0 0 40px var(--neon);
+  }
+  
+  .text-glow-aurora {
+    text-shadow: 0 0 20px var(--aurora), 0 0 40px var(--aurora);
+  }
+  
+  /* 3D perspective utilities */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  
+  .perspective-2000 {
+    perspective: 2000px;
+  }
+  
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  
+  /* Scroll-driven animation utilities */
+  .scroll-fade-in {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+  
+  .scroll-fade-in.in-view {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  /* Hide cursor on touch devices */
+  @media (hover: none) {
+    .custom-cursor {
+      display: none !important;
+    }
+  }
+  
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    
+    .scroll-fade-in {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* Custom cursor styles */
+.cursor-dot {
+  @apply fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-difference;
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.cursor-outline {
+  @apply fixed top-0 left-0 pointer-events-none z-[9998] mix-blend-difference;
+  width: 40px;
+  height: 40px;
+  border: 2px solid white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.2s ease, height 0.2s ease, background 0.2s ease;
+}
+
+.cursor-outline.hovering {
+  width: 60px;
+  height: 60px;
+  background: oklch(1 0 0 / 0.1);
+}
+
+/* Selection styling */
+::selection {
+  background: oklch(from var(--neon) l c h / 0.3);
+  color: var(--foreground);
+}
+
+/* Focus visible */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Gradient animation keyframes */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Screen utility for horizontal scroll */
+.min-w-screen {
+  min-width: 100vw;
+}
+
+/* Line clamp utility */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Skill Icons Theme Adjustments */
+/* Black SVGs (OpenAI, Claude, Perplexity): invert to white in dark mode */
+.dark .icon-invert-dark {
+  filter: invert(1);
+}
+
+/* White SVGs (Next.js, Express, Vercel, GitHub): invert to black in light mode */
+html:not(.dark) .icon-invert-light {
+  filter: invert(1);
+}
+
+/* VS Code icon: recolor black SVG to brand blue (#007ACC) in all themes */
+.icon-vscode {
+  filter: invert(36%) sepia(85%) saturate(1800%) hue-rotate(182deg) brightness(95%) contrast(101%);
+}
