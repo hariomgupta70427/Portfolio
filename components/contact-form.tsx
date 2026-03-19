@@ -29,10 +29,10 @@ const subjects = [
 
 const budgetRanges = [
   { value: '', label: 'Select budget range' },
-  { value: 'under-5k', label: 'Under $5,000' },
-  { value: '5k-10k', label: '$5,000 - $10,000' },
-  { value: '10k-25k', label: '$10,000 - $25,000' },
-  { value: '25k-plus', label: '$25,000+' },
+  { value: 'under-10k', label: 'Under ₹10,000' },
+  { value: '10k-20k', label: '₹10,000 - ₹20,000' },
+  { value: '20k-30k', label: '₹20,000 - ₹30,000' },
+  { value: '30k-plus', label: '₹30,000+' },
 ]
 
 export function ContactForm() {
@@ -224,13 +224,12 @@ export function ContactForm() {
         disabled={status === 'loading'}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className={`w-full py-4 px-6 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer ${
-          status === 'success'
+        className={`w-full py-4 px-6 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer ${status === 'success'
             ? 'bg-aurora text-white'
             : status === 'error'
-            ? 'bg-destructive text-destructive-foreground'
-            : 'bg-foreground text-background hover:opacity-90'
-        }`}
+              ? 'bg-destructive text-destructive-foreground'
+              : 'bg-foreground text-background hover:opacity-90'
+          }`}
         style={{ cursor: 'pointer' }}
       >
         {status === 'loading' && <Loader2 className="w-5 h-5 animate-spin" />}
@@ -265,13 +264,12 @@ function FormField({
         {label}
       </label>
       <div
-        className={`relative border-b-2 transition-colors ${
-          error
+        className={`relative border-b-2 transition-colors ${error
             ? 'border-destructive'
             : isFocused
-            ? 'border-primary'
-            : 'border-border'
-        }`}
+              ? 'border-primary'
+              : 'border-border'
+          }`}
       >
         {children}
         {/* Animated underline */}
