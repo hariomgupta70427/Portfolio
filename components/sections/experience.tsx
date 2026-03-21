@@ -1,14 +1,13 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { motion, useScroll, useTransform, useInView } from 'framer-motion'
 import { Briefcase, Calendar, Check } from 'lucide-react'
 import { Section, AnimatedHeading } from '../section'
 import { experience } from '@/lib/data'
+import { isMobileDevice } from '@/lib/utils'
 
 export function Experience() {
-  const containerRef = useRef<HTMLDivElement>(null)
-
   return (
     <Section id="experience" label="// 03 — EXPERIENCE" className="py-32">
       <div className="max-w-7xl mx-auto px-6">
@@ -29,7 +28,7 @@ export function Experience() {
         </motion.p>
 
         {/* Stacking cards */}
-        <div ref={containerRef} className="relative space-y-8">
+        <div className="relative space-y-8">
           {experience.map((exp, index) => (
             <ExperienceCard
               key={exp.id}
@@ -55,7 +54,13 @@ function ExperienceCard({
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
   const isInView = useInView(cardRef, { once: true, margin: '-10%' })
+  const [mobile, setMobile] = useState(false)
 
+  useEffect(() => {
+    setMobile(isMobileDevice())
+  }, [])
+
+  // Scroll-driven transforms — only on desktop
   const { scrollYProgress } = useScroll({
     target: cardRef,
     offset: ['start center', 'end center'],
@@ -71,11 +76,11 @@ function ExperienceCard({
   return (
     <motion.div
       ref={cardRef}
-      style={{ scale, opacity, rotateX }}
+      style={mobile ? {} : { scale, opacity, rotateX }}
       initial={{ opacity: 0, y: 50 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6, delay: index * 0.1 }}
-      className="relative perspective-1000"
+      className={`relative ${mobile ? '' : 'perspective-1000'}`}
     >
       {/* Timeline connector */}
       {index < total - 1 && (

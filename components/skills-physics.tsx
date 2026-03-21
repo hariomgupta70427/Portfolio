@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Matter from 'matter-js'
 import { skills } from '@/lib/data'
+import { isMobileDevice } from '@/lib/utils'
 
 const COLORS: Record<string, string> = {
   'skill-mobile': '#FF6B35',
@@ -65,30 +66,22 @@ const BLACK_SVGS = new Set(['OpenAI', 'Claude', 'Perplexity'])
 // Monochrome WHITE SVGs — invisible on light bg → invert only in light mode
 const WHITE_SVGS = new Set(['Next.js', 'Express.js', 'Vercel', 'GitHub'])
 
-interface SkillBody {
-  name: string
-  color: string
-  x: number
-  y: number
-  angle: number
-}
-
 export function SkillsPhysics() {
   const containerRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<Matter.Engine | null>(null)
   const runnerRef = useRef<Matter.Runner | null>(null)
   const rafRef = useRef<number>(0)
   const bodiesRef = useRef<Matter.Body[]>([])
+  const domNodesRef = useRef<Map<string, HTMLDivElement>>(new Map())
   const mouseConstraintRef = useRef<Matter.MouseConstraint | null>(null)
 
-  const [positions, setPositions] = useState<SkillBody[]>([])
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null)
   const [isInView, setIsInView] = useState(false)
   const [hasDropped, setHasDropped] = useState(false)
   const [imagesReady, setImagesReady] = useState(false)
   const [failedIcons, setFailedIcons] = useState<Set<string>>(new Set())
-  // Blob URLs keyed by skill name — guaranteed in-memory, no cache eviction
   const [iconBlobUrls, setIconBlobUrls] = useState<Record<string, string>>({})
+  const [engineReady, setEngineReady] = useState(false)
 
   // Build deduplicated skill list
   const allSkills = useRef<{ name: string; color: string }[]>([])
@@ -107,11 +100,10 @@ export function SkillsPhysics() {
     })
   }
 
-  // Fetch all SVGs as blobs on mount — blob URLs stay in memory permanently
+  // Fetch all SVGs as blobs on mount
   useEffect(() => {
     let cancelled = false
 
-    // Inject <link rel="preload"> for browser-level early fetch
     const preloadLinks: HTMLLinkElement[] = []
     Object.values(TECH_ICONS).forEach((url) => {
       const link = document.createElement('link')
@@ -148,7 +140,6 @@ export function SkillsPhysics() {
 
     loadAllIcons()
 
-    // Safety fallback — start physics even if fetch is slow
     const timeout = setTimeout(() => {
       if (!cancelled) setImagesReady(true)
     }, 3000)
@@ -179,51 +170,49 @@ export function SkillsPhysics() {
     return () => observer.disconnect()
   }, [hasDropped])
 
-  // Sync physics → React state
+  // Direct DOM sync — no React re-renders
   const syncPositions = useCallback(() => {
     const bodies = bodiesRef.current
-    if (bodies.length === 0) return
+    if (bodies.length === 0) {
+      rafRef.current = requestAnimationFrame(syncPositions)
+      return
+    }
 
-    const next: SkillBody[] = bodies.map((body) => ({
-      name: body.label,
-      color: (body as any)._skillColor || '#ffffff',
-      x: body.position.x,
-      y: body.position.y,
-      angle: body.angle,
-    }))
+    for (const body of bodies) {
+      const node = domNodesRef.current.get(body.label)
+      if (node) {
+        node.style.transform = `translate(${body.position.x - 26}px, ${body.position.y - 26}px) rotate(${body.angle}rad)`
+      }
+    }
 
-    setPositions(next)
     rafRef.current = requestAnimationFrame(syncPositions)
   }, [])
 
-  // Initialize Matter.js engine + bodies — only when BOTH in view AND images are ready
+  // Initialize Matter.js engine + bodies
   useEffect(() => {
     if (!containerRef.current || !isInView || !imagesReady) return
 
     const container = containerRef.current
     const width = container.offsetWidth
     const height = 500
+    const mobile = isMobileDevice()
 
     // Engine
     const engine = Matter.Engine.create({ gravity: { x: 0, y: 1 } })
     engineRef.current = engine
 
-    // Walls (invisible)
+    // Walls
     const wallThickness = 50
     const walls = [
-      // Floor
       Matter.Bodies.rectangle(width / 2, height + wallThickness / 2, width * 2, wallThickness, {
         isStatic: true, render: { visible: false }, label: '_wall',
       }),
-      // Left
       Matter.Bodies.rectangle(-wallThickness / 2, height / 2, wallThickness, height * 2, {
         isStatic: true, render: { visible: false }, label: '_wall',
       }),
-      // Right
       Matter.Bodies.rectangle(width + wallThickness / 2, height / 2, wallThickness, height * 2, {
         isStatic: true, render: { visible: false }, label: '_wall',
       }),
-      // Ceiling (high up so icons drop in)
       Matter.Bodies.rectangle(width / 2, -200 - wallThickness / 2, width * 2, wallThickness, {
         isStatic: true, render: { visible: false }, label: '_wall',
       }),
@@ -235,6 +224,7 @@ export function SkillsPhysics() {
 
     // Create bodies with staggered drop
     const bodies: Matter.Body[] = []
+    const staggerDelay = mobile ? 30 : 60
     shuffled.forEach((skill, index) => {
       setTimeout(() => {
         const body = Matter.Bodies.circle(
@@ -244,53 +234,57 @@ export function SkillsPhysics() {
           {
             restitution: 0.6,
             friction: 0.1,
-            frictionAir: 0.02,
+            frictionAir: mobile ? 0.04 : 0.02, // Higher air friction on mobile = settle faster
             label: skill.name,
           }
         )
-        // Store color on the body for rendering
         ;(body as any)._skillColor = skill.color
 
-        // Random initial velocity
         Matter.Body.setVelocity(body, {
           x: (Math.random() - 0.5) * 6,
           y: Math.random() * 2 + 1,
         })
 
         bodies.push(body)
+        bodiesRef.current = bodies
         Matter.Composite.add(engine.world, body)
-      }, index * 60)
+      }, index * staggerDelay)
     })
-    bodiesRef.current = bodies
 
-    // Mouse interaction — create a phantom element for Matter.Mouse
-    const phantomCanvas = document.createElement('div')
-    phantomCanvas.style.position = 'absolute'
-    phantomCanvas.style.inset = '0'
-    phantomCanvas.style.zIndex = '5'
-    phantomCanvas.style.cursor = 'grab'
-    container.appendChild(phantomCanvas)
+    // Mouse interaction — only on non-touch
+    let phantomCanvas: HTMLDivElement | null = null
+    if (!mobile) {
+      phantomCanvas = document.createElement('div')
+      phantomCanvas.style.position = 'absolute'
+      phantomCanvas.style.inset = '0'
+      phantomCanvas.style.zIndex = '5'
+      phantomCanvas.style.cursor = 'grab'
+      container.appendChild(phantomCanvas)
 
-    const mouse = Matter.Mouse.create(phantomCanvas as any)
-    // Fix pixel ratio scaling
-    mouse.pixelRatio = 1
+      const mouse = Matter.Mouse.create(phantomCanvas as any)
+      mouse.pixelRatio = 1
 
-    const mouseConstraint = Matter.MouseConstraint.create(engine, {
-      mouse,
-      constraint: {
-        stiffness: 0.2,
-        render: { visible: false },
-      },
-    })
-    Matter.Composite.add(engine.world, mouseConstraint)
-    mouseConstraintRef.current = mouseConstraint
+      const mouseConstraint = Matter.MouseConstraint.create(engine, {
+        mouse,
+        constraint: {
+          stiffness: 0.2,
+          render: { visible: false },
+        },
+      })
+      Matter.Composite.add(engine.world, mouseConstraint)
+      mouseConstraintRef.current = mouseConstraint
+    }
 
     // Runner
-    const runner = Matter.Runner.create()
+    const runner = Matter.Runner.create({
+      delta: mobile ? 1000 / 30 : 1000 / 60, // 30fps on mobile, 60fps on desktop
+    })
     Matter.Runner.run(runner, engine)
     runnerRef.current = runner
 
-    // Start syncing positions
+    setEngineReady(true)
+
+    // Start syncing positions via direct DOM
     rafRef.current = requestAnimationFrame(syncPositions)
 
     // Handle resize
@@ -298,7 +292,6 @@ export function SkillsPhysics() {
       if (!containerRef.current) return
       const newWidth = containerRef.current.offsetWidth
 
-      // Update wall positions
       Matter.Body.setPosition(walls[0], { x: newWidth / 2, y: height + wallThickness / 2 })
       Matter.Body.setVertices(walls[0], Matter.Bodies.rectangle(newWidth / 2, height + wallThickness / 2, newWidth * 2, wallThickness).vertices)
       Matter.Body.setPosition(walls[2], { x: newWidth + wallThickness / 2, y: height / 2 })
@@ -313,11 +306,20 @@ export function SkillsPhysics() {
       Matter.World.clear(engine.world, false)
       Matter.Engine.clear(engine)
 
-      if (phantomCanvas.parentNode) {
+      if (phantomCanvas?.parentNode) {
         phantomCanvas.parentNode.removeChild(phantomCanvas)
       }
     }
   }, [isInView, imagesReady, syncPositions])
+
+  // Ref callback to collect DOM nodes
+  const setNodeRef = useCallback((name: string) => (el: HTMLDivElement | null) => {
+    if (el) {
+      domNodesRef.current.set(name, el)
+    } else {
+      domNodesRef.current.delete(name)
+    }
+  }, [])
 
   return (
     <div
@@ -325,8 +327,8 @@ export function SkillsPhysics() {
       className="relative w-full rounded-2xl overflow-hidden border border-border/50 bg-card/30 backdrop-blur-sm"
       style={{ height: 500 }}
     >
-      {/* Rendered skill icons */}
-      {positions.map((item) => {
+      {/* Rendered skill icons — positioned via direct DOM, not React state */}
+      {engineReady && allSkills.current.map((item) => {
         const blobUrl = iconBlobUrls[item.name]
         const iconUrl = blobUrl || TECH_ICONS[item.name]
         const isHovered = hoveredSkill === item.name
@@ -335,6 +337,7 @@ export function SkillsPhysics() {
         return (
           <div
             key={item.name}
+            ref={setNodeRef(item.name)}
             onMouseEnter={() => setHoveredSkill(item.name)}
             onMouseLeave={() => setHoveredSkill(null)}
             style={{
@@ -343,13 +346,11 @@ export function SkillsPhysics() {
               height: 52,
               left: 0,
               top: 0,
-              transform: `translate(${item.x - 26}px, ${item.y - 26}px) rotate(${item.angle}rad) scale(${isHovered ? 1.2 : 1})`,
-              transition: 'transform 0.15s ease',
+              willChange: 'transform',
               zIndex: isHovered ? 20 : 10,
               pointerEvents: 'none',
             }}
           >
-            {/* Show icon image OR fallback circle (never both) */}
             {iconUrl && !isFailed ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -379,7 +380,6 @@ export function SkillsPhysics() {
                 }}
               />
             ) : (
-              /* Fallback: colored circle with first letter */
               <div
                 style={{
                   width: 44,

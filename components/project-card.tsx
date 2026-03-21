@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import { Github, ExternalLink, Star, GitFork } from 'lucide-react'
 import { MagneticButton } from './magnetic-button'
 import { useGitHubStats } from '@/hooks/useGitHubStats'
+import { isTouchDevice } from '@/lib/utils'
 
 interface Project {
   id: number
@@ -33,12 +34,17 @@ function StatSkeleton() {
 export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [isHovered, setIsHovered] = useState(false)
+  const [isTouch, setIsTouch] = useState(false)
   const { data: ghData, loading } = useGitHubStats(project.name, {
     stars: project.stars,
     forks: project.forks,
   })
 
-  // 3D tilt effect
+  useEffect(() => {
+    setIsTouch(isTouchDevice())
+  }, [])
+
+  // 3D tilt effect — only create on non-touch
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
 
@@ -52,7 +58,7 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
   })
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return
+    if (!cardRef.current || isTouch) return
     const rect = cardRef.current.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width - 0.5
     const y = (e.clientY - rect.top) / rect.height - 0.5
@@ -69,11 +75,11 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
   return (
     <motion.div
       ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={handleMouseLeave}
+      onMouseMove={isTouch ? undefined : handleMouseMove}
+      onMouseEnter={isTouch ? undefined : () => setIsHovered(true)}
+      onMouseLeave={isTouch ? undefined : handleMouseLeave}
       onClick={() => onClick({ stars: ghData.stars, forks: ghData.forks })}
-      style={{
+      style={isTouch ? {} : {
         rotateX,
         rotateY,
         transformStyle: 'preserve-3d',
@@ -85,14 +91,16 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
       transition={{ duration: 0.4 }}
       className="relative w-full max-w-xl cursor-pointer perspective-1000"
     >
-      {/* Glow effect */}
-      <motion.div
-        animate={{
-          opacity: isHovered ? 1 : 0,
-        }}
-        className="absolute -inset-4 rounded-3xl blur-2xl"
-        style={{ backgroundColor: `${project.color}20` }}
-      />
+      {/* Glow effect — desktop only */}
+      {!isTouch && (
+        <motion.div
+          animate={{
+            opacity: isHovered ? 1 : 0,
+          }}
+          className="absolute -inset-4 rounded-3xl blur-2xl"
+          style={{ backgroundColor: `${project.color}20` }}
+        />
+      )}
 
       {/* Card */}
       <div
@@ -101,16 +109,18 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
           borderTop: `4px solid ${project.color}`,
         }}
       >
-        {/* Reflection effect */}
-        <motion.div
-          animate={{
-            x: isHovered ? '200%' : '-100%',
-          }}
-          transition={{ duration: 0.6 }}
-          className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 pointer-events-none"
-        />
+        {/* Reflection effect — desktop only */}
+        {!isTouch && (
+          <motion.div
+            animate={{
+              x: isHovered ? '200%' : '-100%',
+            }}
+            transition={{ duration: 0.6 }}
+            className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 pointer-events-none"
+          />
+        )}
 
-        <div className="p-8" style={{ transform: 'translateZ(50px)' }}>
+        <div className="p-8" style={isTouch ? {} : { transform: 'translateZ(50px)' }}>
           {/* Header */}
           <div className="flex items-start justify-between mb-6">
             <div>
@@ -173,13 +183,15 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
             ))}
           </div>
 
-          {/* Click hint */}
-          <motion.p
-            animate={{ opacity: isHovered ? 1 : 0 }}
-            className="mt-6 text-center text-sm text-muted-foreground"
-          >
-            Click to view details
-          </motion.p>
+          {/* Click hint — desktop only */}
+          {!isTouch && (
+            <motion.p
+              animate={{ opacity: isHovered ? 1 : 0 }}
+              className="mt-6 text-center text-sm text-muted-foreground"
+            >
+              Click to view details
+            </motion.p>
+          )}
         </div>
       </div>
 

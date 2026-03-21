@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef, useState, ReactNode } from 'react'
+import { useRef, useState, ReactNode, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { isTouchDevice } from '@/lib/utils'
 
 interface MagneticButtonProps {
   children: ReactNode
@@ -12,9 +13,14 @@ interface MagneticButtonProps {
 export function MagneticButton({ children, strength = 0.5, className = '' }: MagneticButtonProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState({ x: 0, y: 0 })
+  const [isTouch, setIsTouch] = useState(false)
+
+  useEffect(() => {
+    setIsTouch(isTouchDevice())
+  }, [])
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return
+    if (!ref.current || isTouch) return
 
     const rect = ref.current.getBoundingClientRect()
     const centerX = rect.left + rect.width / 2
@@ -31,6 +37,15 @@ export function MagneticButton({ children, strength = 0.5, className = '' }: Mag
 
   const handleMouseLeave = () => {
     setPosition({ x: 0, y: 0 })
+  }
+
+  // On touch devices, render a plain div — no springs, no motion overhead
+  if (isTouch) {
+    return (
+      <div className={`cursor-pointer ${className}`}>
+        {children}
+      </div>
+    )
   }
 
   return (

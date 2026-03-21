@@ -363,6 +363,50 @@
   background: oklch(1 0 0 / 0.1);
 }
 
+/* Mobile performance optimizations */
+@media (max-width: 768px) {
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .backdrop-blur-xl {
+    backdrop-filter: blur(4px) !important;
+  }
+  
+  .backdrop-blur-md {
+    backdrop-filter: blur(2px) !important;
+  }
+  
+  .glass {
+    backdrop-filter: blur(4px) !important;
+  }
+  
+  .glass-strong {
+    backdrop-filter: blur(8px) !important;
+  }
+}
+
+/* CSS particle animations — GPU-composited, zero JS cost */
+@keyframes particle-float {
+  0%, 100% {
+    transform: translate(0, 0);
+    opacity: var(--p-opacity);
+  }
+  50% {
+    transform: translate(var(--p-dx, 5px), var(--p-dy, -30px));
+    opacity: calc(var(--p-opacity) * 1.4);
+  }
+}
+
+@keyframes shape-float {
+  0%, 100% {
+    transform: translate(-50%, -50%) rotate(var(--s-rot, 0deg)) scale(1);
+  }
+  50% {
+    transform: translate(calc(-50% + 20px), calc(-50% - 40px)) rotate(calc(var(--s-rot, 0deg) + 180deg)) scale(1.1);
+  }
+}
+
 /* Selection styling */
 ::selection {
   background: oklch(from var(--neon) l c h / 0.3);

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 
 export function useScrollVelocity() {
   const [velocity, setVelocity] = useState(0)
@@ -8,49 +8,46 @@ export function useScrollVelocity() {
   const lastScrollY = useRef(0)
   const lastTime = useRef(Date.now())
   const velocityRef = useRef(0)
+  const decayTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleScroll = useCallback(() => {
+    const currentScrollY = window.scrollY
+    const currentTime = Date.now()
+    const deltaY = currentScrollY - lastScrollY.current
+    const deltaTime = currentTime - lastTime.current
+
+    if (deltaTime > 0) {
+      const newVelocity = Math.abs(deltaY) / deltaTime * 100
+      velocityRef.current = velocityRef.current * 0.8 + newVelocity * 0.2
+      setVelocity(velocityRef.current)
+      
+      if (deltaY > 0) {
+        setDirection('down')
+      } else if (deltaY < 0) {
+        setDirection('up')
+      }
+    }
+
+    lastScrollY.current = currentScrollY
+    lastTime.current = currentTime
+
+    // Reset decay timer
+    if (decayTimer.current) clearTimeout(decayTimer.current)
+    decayTimer.current = setTimeout(() => {
+      velocityRef.current = 0
+      setVelocity(0)
+      setDirection('none')
+    }, 150)
+  }, [])
 
   useEffect(() => {
-    let rafId: number
-
-    const updateVelocity = () => {
-      const currentScrollY = window.scrollY
-      const currentTime = Date.now()
-      const deltaY = currentScrollY - lastScrollY.current
-      const deltaTime = currentTime - lastTime.current
-
-      if (deltaTime > 0) {
-        const newVelocity = Math.abs(deltaY) / deltaTime * 100
-        // Smooth the velocity
-        velocityRef.current = velocityRef.current * 0.8 + newVelocity * 0.2
-        setVelocity(velocityRef.current)
-        
-        if (deltaY > 0) {
-          setDirection('down')
-        } else if (deltaY < 0) {
-          setDirection('up')
-        }
-      }
-
-      lastScrollY.current = currentScrollY
-      lastTime.current = currentTime
-      
-      // Decay velocity when not scrolling
-      if (velocityRef.current > 0.1) {
-        velocityRef.current *= 0.95
-        setVelocity(velocityRef.current)
-      } else {
-        setDirection('none')
-      }
-
-      rafId = requestAnimationFrame(updateVelocity)
-    }
-
-    rafId = requestAnimationFrame(updateVelocity)
+    window.addEventListener('scroll', handleScroll, { passive: true })
 
     return () => {
-      cancelAnimationFrame(rafId)
+      window.removeEventListener('scroll', handleScroll)
+      if (decayTimer.current) clearTimeout(decayTimer.current)
     }
-  }, [])
+  }, [handleScroll])
 
   return { velocity, direction }
 }

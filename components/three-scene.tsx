@@ -1,8 +1,8 @@
 'use client'
 
-// CSS-based particle animation (no React Three Fiber)
+// CSS-based particle animation — zero JS animation overhead
 import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { isMobileDevice } from '@/lib/utils'
 
 interface Particle {
   id: number
@@ -12,6 +12,8 @@ interface Particle {
   duration: number
   delay: number
   opacity: number
+  dx: number
+  dy: number
 }
 
 interface FloatingShape {
@@ -30,10 +32,15 @@ export function ThreeScene() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [particles, setParticles] = useState<Particle[]>([])
   const [shapes, setShapes] = useState<FloatingShape[]>([])
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [reducedMotion, setReducedMotion] = useState(false)
+  const mousePosRef = useRef({ x: 0, y: 0 })
+  const gradientRef = useRef<HTMLDivElement>(null)
+  const rafPending = useRef(false)
+  const isMobile = useRef(false)
 
   useEffect(() => {
+    isMobile.current = isMobileDevice()
+
     // Check for reduced motion preference
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
     setReducedMotion(mediaQuery.matches)
@@ -41,8 +48,8 @@ export function ThreeScene() {
     const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches)
     mediaQuery.addEventListener('change', handler)
 
-    // Generate particles
-    const particleCount = window.innerWidth < 768 ? 30 : 80
+    // Generate particles — fewer on mobile
+    const particleCount = isMobile.current ? 15 : 60
     const newParticles: Particle[] = []
     for (let i = 0; i < particleCount; i++) {
       newParticles.push({
@@ -53,12 +60,14 @@ export function ThreeScene() {
         duration: Math.random() * 20 + 15,
         delay: Math.random() * 5,
         opacity: Math.random() * 0.5 + 0.2,
+        dx: Math.random() * 20 - 10,
+        dy: -(Math.random() * 25 + 10),
       })
     }
     setParticles(newParticles)
 
-    // Generate floating shapes
-    const shapeCount = window.innerWidth < 768 ? 3 : 6
+    // Generate floating shapes — fewer on mobile
+    const shapeCount = isMobile.current ? 2 : 5
     const colors = ['#00F5FF', '#00FF88', '#A855F7', '#FF2D78', '#FF6B35']
     const types: FloatingShape['type'][] = ['circle', 'ring', 'triangle', 'square']
     const newShapes: FloatingShape[] = []
@@ -77,15 +86,31 @@ export function ThreeScene() {
     }
     setShapes(newShapes)
 
-    // Mouse tracking
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY })
+    // Mouse tracking — only on non-touch, RAF-throttled
+    if (!isMobile.current) {
+      const handleMouseMove = (e: MouseEvent) => {
+        mousePosRef.current = { x: e.clientX, y: e.clientY }
+        if (!rafPending.current) {
+          rafPending.current = true
+          requestAnimationFrame(() => {
+            if (gradientRef.current) {
+              gradientRef.current.style.background =
+                `radial-gradient(circle at ${mousePosRef.current.x}px ${mousePosRef.current.y}px, var(--neon) 0%, transparent 50%)`
+            }
+            rafPending.current = false
+          })
+        }
+      }
+      window.addEventListener('mousemove', handleMouseMove, { passive: true })
+
+      return () => {
+        mediaQuery.removeEventListener('change', handler)
+        window.removeEventListener('mousemove', handleMouseMove)
+      }
     }
-    window.addEventListener('mousemove', handleMouseMove)
 
     return () => {
       mediaQuery.removeEventListener('change', handler)
-      window.removeEventListener('mousemove', handleMouseMove)
     }
   }, [])
 
@@ -101,7 +126,6 @@ export function ThreeScene() {
               width: shape.size,
               height: shape.size,
               background: `radial-gradient(circle, ${shape.color}40 0%, transparent 70%)`,
-              boxShadow: `0 0 40px ${shape.color}30`,
             }}
           />
         )
@@ -113,7 +137,6 @@ export function ThreeScene() {
               width: shape.size,
               height: shape.size,
               border: `2px solid ${shape.color}40`,
-              boxShadow: `0 0 20px ${shape.color}20, inset 0 0 20px ${shape.color}10`,
             }}
           />
         )
@@ -126,7 +149,6 @@ export function ThreeScene() {
               borderLeft: `${shape.size / 2}px solid transparent`,
               borderRight: `${shape.size / 2}px solid transparent`,
               borderBottom: `${shape.size}px solid ${shape.color}30`,
-              filter: `drop-shadow(0 0 20px ${shape.color}30)`,
             }}
           />
         )
@@ -138,7 +160,6 @@ export function ThreeScene() {
               height: shape.size * 0.7,
               background: `linear-gradient(135deg, ${shape.color}20 0%, ${shape.color}05 100%)`,
               border: `1px solid ${shape.color}30`,
-              boxShadow: `0 0 30px ${shape.color}20`,
             }}
           />
         )
@@ -150,17 +171,18 @@ export function ThreeScene() {
       ref={containerRef}
       className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
     >
-      {/* Gradient overlay that follows mouse */}
-      <div 
-        className="absolute inset-0 opacity-30 transition-all duration-300"
-        style={{
-          background: `radial-gradient(circle at ${mousePos.x}px ${mousePos.y}px, var(--neon) 0%, transparent 50%)`,
-        }}
-      />
+      {/* Gradient overlay that follows mouse — desktop only, updated via ref */}
+      {!isMobile.current && (
+        <div
+          ref={gradientRef}
+          className="absolute inset-0 opacity-30"
+          style={{ willChange: 'background' }}
+        />
+      )}
 
-      {/* Particles */}
+      {/* Particles — pure CSS animations, zero JS cost */}
       {particles.map((particle) => (
-        <motion.div
+        <div
           key={particle.id}
           className="absolute rounded-full"
           style={{
@@ -169,48 +191,30 @@ export function ThreeScene() {
             width: particle.size,
             height: particle.size,
             backgroundColor: 'var(--neon)',
-            opacity: particle.opacity,
-            boxShadow: `0 0 ${particle.size * 2}px var(--neon)`,
-          }}
-          animate={{
-            y: [0, -30, 0],
-            x: [0, Math.random() * 20 - 10, 0],
-            opacity: [particle.opacity, particle.opacity * 1.5, particle.opacity],
-          }}
-          transition={{
-            duration: particle.duration,
-            delay: particle.delay,
-            repeat: Infinity,
-            ease: 'easeInOut',
+            willChange: 'transform, opacity',
+            ['--p-opacity' as string]: particle.opacity,
+            ['--p-dx' as string]: `${particle.dx}px`,
+            ['--p-dy' as string]: `${particle.dy}px`,
+            animation: `particle-float ${particle.duration}s ${particle.delay}s ease-in-out infinite`,
           }}
         />
       ))}
 
-      {/* Floating shapes */}
+      {/* Floating shapes — pure CSS animations */}
       {shapes.map((shape) => (
-        <motion.div
+        <div
           key={shape.id}
           className="absolute"
           style={{
             left: `${shape.x}%`,
             top: `${shape.y}%`,
-            transform: `translate(-50%, -50%) rotate(${shape.rotation}deg)`,
-          }}
-          animate={{
-            y: [0, -40, 0],
-            x: [0, 20, 0],
-            rotate: [shape.rotation, shape.rotation + 360],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: shape.duration,
-            delay: shape.delay,
-            repeat: Infinity,
-            ease: 'easeInOut',
+            willChange: 'transform',
+            ['--s-rot' as string]: `${shape.rotation}deg`,
+            animation: `shape-float ${shape.duration}s ${shape.delay}s ease-in-out infinite`,
           }}
         >
           {renderShape(shape)}
-        </motion.div>
+        </div>
       ))}
 
       {/* Grid lines for depth effect */}

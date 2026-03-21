@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useRef } from 'react'
 import Lenis from 'lenis'
+import { isTouchDevice } from '@/lib/utils'
 
 interface LenisProviderProps {
   children: ReactNode
@@ -11,14 +12,18 @@ export function LenisProvider({ children }: LenisProviderProps) {
   const lenisRef = useRef<Lenis | null>(null)
 
   useEffect(() => {
-    // Use window/document scrolling instead of a wrapper
+    // Skip Lenis on touch devices — native momentum scroll is already smooth
+    if (isTouchDevice()) {
+      return
+    }
+
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 1.0,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
-      touchMultiplier: 2,
+      touchMultiplier: 0, // Never intercept touch
     })
 
     lenisRef.current = lenis

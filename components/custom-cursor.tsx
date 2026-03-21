@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, useMotionValue, useSpring } from 'framer-motion'
+import { isTouchDevice } from '@/lib/utils'
 
 export function CustomCursor() {
   const [isHovering, setIsHovering] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
-  const [isTouchDevice, setIsTouchDevice] = useState(false)
-  const trailRef = useRef<{ x: number; y: number }[]>([])
+  const [isTouch, setIsTouch] = useState(true) // Default true to avoid flash
   
   const cursorX = useMotionValue(0)
   const cursorY = useMotionValue(0)
@@ -17,24 +17,14 @@ export function CustomCursor() {
   const cursorYSpring = useSpring(cursorY, springConfig)
 
   useEffect(() => {
-    // Check for touch device
-    const checkTouch = () => {
-      setIsTouchDevice(window.matchMedia('(hover: none)').matches)
-    }
-    checkTouch()
-    
-    if (isTouchDevice) return
+    const touch = isTouchDevice()
+    setIsTouch(touch)
+    if (touch) return
 
     const handleMouseMove = (e: MouseEvent) => {
       cursorX.set(e.clientX)
       cursorY.set(e.clientY)
       setIsVisible(true)
-      
-      // Update trail
-      trailRef.current.push({ x: e.clientX, y: e.clientY })
-      if (trailRef.current.length > 8) {
-        trailRef.current.shift()
-      }
     }
 
     const handleMouseEnter = () => setIsVisible(true)
@@ -47,8 +37,8 @@ export function CustomCursor() {
       setIsHovering(!!isHoverable)
     }
 
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mousemove', handleElementHover)
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
+    window.addEventListener('mousemove', handleElementHover, { passive: true })
     document.addEventListener('mouseenter', handleMouseEnter)
     document.addEventListener('mouseleave', handleMouseLeave)
 
@@ -58,9 +48,10 @@ export function CustomCursor() {
       document.removeEventListener('mouseenter', handleMouseEnter)
       document.removeEventListener('mouseleave', handleMouseLeave)
     }
-  }, [cursorX, cursorY, isTouchDevice])
+  }, [cursorX, cursorY])
 
-  if (isTouchDevice) return null
+  // Don't render anything on touch devices
+  if (isTouch) return null
 
   return (
     <>
@@ -104,35 +95,6 @@ export function CustomCursor() {
           }`} 
         />
       </motion.div>
-
-      {/* Trail effect */}
-      {[...Array(5)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="fixed top-0 left-0 pointer-events-none z-[9997] mix-blend-difference"
-          style={{
-            x: cursorXSpring,
-            y: cursorYSpring,
-            translateX: '-50%',
-            translateY: '-50%',
-          }}
-          animate={{
-            opacity: isVisible ? 0.3 - i * 0.05 : 0,
-            scale: 1 - i * 0.1,
-          }}
-          transition={{ 
-            duration: 0.1,
-            delay: i * 0.02,
-          }}
-        >
-          <div 
-            className="w-1 h-1 bg-white rounded-full"
-            style={{ 
-              transform: `scale(${1 - i * 0.15})`,
-            }} 
-          />
-        </motion.div>
-      ))}
     </>
   )
 }
